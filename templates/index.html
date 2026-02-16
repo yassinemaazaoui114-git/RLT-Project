@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Breast Cancer AI Diagnostic Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --primary-light: #dbeafe;
+            --accent: #0891b2;
+            --success: #059669;
+            --success-light: #d1fae5;
+            --danger: #dc2626;
+            --danger-light: #fee2e2;
+            --warning: #f59e0b;
+            --warning-light: #fef3c7;
+            --neutral-50: #f8fafc;
+            --neutral-100: #f1f5f9;
+            --neutral-200: #e2e8f0;
+            --neutral-300: #cbd5e1;
+            --neutral-400: #94a3b8;
+            --neutral-500: #64748b;
+            --neutral-600: #475569;
+            --neutral-700: #334155;
+            --neutral-800: #1e293b;
+            --neutral-900: #0f172a;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(to bottom, var(--neutral-50) 0%, #ffffff 100%);
+            color: var(--neutral-700);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 0;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+            color: white;
+            padding: 2rem 1rem;
+            box-shadow: var(--shadow-lg);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.025em;
+        }
+
+        .header p {
+            font-size: 0.95rem;
+            opacity: 0.95;
+            font-weight: 400;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        .alert {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-left: 4px solid #f59e0b;
+            padding: 1rem 1.25rem;
+            margin-bottom: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .alert strong {
+            color: #92400e;
+            display: block;
+            margin-bottom: 0.25rem;
+            font-size: 0.95rem;
+        }
+
+        .alert p {
+            color: #78350f;
+            font-size: 0.9rem;
+            margin: 0;
+        }
+
+        .card {
+            background: white;
+            border-radius: 0.75rem;
+            box-shadow: var(--shadow);
+            margin-bottom: 2rem;
+            overflow: hidden;
+            transition: box-shadow 0.2s ease;
+        }
+
+        .card:hover {
+            box-shadow: var(--shadow-md);
+        }
+
+        .card-header {
+            background: var(--neutral-50);
+            border-bottom: 1px solid var(--neutral-200);
+            padding: 1.25rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .card-header h2 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--neutral-800);
+            margin: 0;
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--neutral-700);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .form-group input,
+        .form-group select {
+            padding: 0.625rem 0.875rem;
+            border: 1.5px solid var(--neutral-300);
+            border-radius: 0.5rem;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+            background: white;
+            color: var(--neutral-700);
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-light);
+        }
+
+        .form-group input::placeholder {
+            color: var(--neutral-400);
+        }
+
+        .accordion {
+            border: 1.5px solid var(--neutral-200);
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            overflow: hidden;
+            transition: all 0.2s ease;
+        }
+
+        .accordion:hover {
+            border-color: var(--neutral-300);
+        }
+
+        .accordion-header {
+            background: var(--neutral-50);
+            padding: 1rem 1.25rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.2s ease;
+            user-select: none;
+        }
+
+        .accordion-header:hover {
+            background: var(--neutral-100);
+        }
+
+        .accordion-header h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--neutral-800);
+            margin: 0;
+        }
+
+        .accordion-icon {
+            font-size: 1.25rem;
+            color: var(--neutral-500);
+            transition: transform 0.3s ease;
+        }
+
+        .accordion-icon.open {
+            transform: rotate(180deg);
+        }
+
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .accordion-content.open {
+            max-height: 2000px;
+        }
+
+        .accordion-body {
+            padding: 1.5rem 1.25rem;
+            background: white;
+        }
+
+        .measurement-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1rem;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .sample-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            font-size: 0.95rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            flex: 1;
+            min-width: 180px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: var(--neutral-700);
+            border: 1.5px solid var(--neutral-300);
+        }
+
+        .btn-secondary:hover {
+            background: var(--neutral-50);
+            border-color: var(--neutral-400);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .btn-success:hover {
+            background: #047857;
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .btn-danger:hover {
+            background: #b91c1c;
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-warning {
+            background: var(--warning);
+            color: white;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .btn-warning:hover {
+            background: #d97706;
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem;
+            background: var(--neutral-50);
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .checkbox-container:hover {
+            background: var(--neutral-100);
+        }
+
+        .checkbox-container input[type="checkbox"] {
+            width: 1.25rem;
+            height: 1.25rem;
+            cursor: pointer;
+            accent-color: var(--primary);
+        }
+
+        .checkbox-container label {
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--neutral-700);
+            cursor: pointer;
+            margin: 0;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 3rem 1rem;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid var(--neutral-200);
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading p {
+            color: var(--neutral-600);
+            font-size: 0.95rem;
+        }
+
+        .results {
+            display: none;
+            margin-top: 2rem;
+        }
+
+        .results.show {
+            display: block;
+            animation: fadeIn 0.4s ease;
+        }
+
+        @keyframes fadeIn {
+            from { 
+                opacity: 0; 
+                transform: translateY(10px); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0); 
+            }
+        }
+
+        .consensus {
+            text-align: center;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            margin-bottom: 2rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            box-shadow: var(--shadow-md);
+        }
+
+        .consensus.malignant {
+            background: linear-gradient(135deg, var(--danger-light) 0%, #fecaca 100%);
+            color: var(--danger);
+            border: 2px solid #fca5a5;
+        }
+
+        .consensus.benign {
+            background: linear-gradient(135deg, var(--success-light) 0%, #a7f3d0 100%);
+            color: var(--success);
+            border: 2px solid #6ee7b7;
+        }
+
+        .consensus small {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 400;
+            margin-top: 0.5rem;
+            opacity: 0.8;
+        }
+
+        .model-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .model-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            box-shadow: var(--shadow);
+            transition: all 0.2s ease;
+        }
+
+        .model-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .model-name {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--neutral-800);
+            margin-bottom: 1rem;
+        }
+
+        .model-diagnosis {
+            font-size: 1.125rem;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            margin: 0.75rem 0;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .model-diagnosis.malignant {
+            background: var(--danger-light);
+            color: var(--danger);
+        }
+
+        .model-diagnosis.benign {
+            background: var(--success-light);
+            color: var(--success);
+        }
+
+        .confidence-bar {
+            width: 100%;
+            height: 32px;
+            background: var(--neutral-100);
+            border-radius: 0.5rem;
+            overflow: hidden;
+            margin-top: 0.75rem;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 0.875rem;
+            transition: width 1s ease-out;
+        }
+
+        .info-grid {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75rem;
+            background: var(--neutral-50);
+            border-radius: 0.5rem;
+        }
+
+        .info-item strong {
+            color: var(--neutral-700);
+            font-weight: 600;
+        }
+
+        .info-item span {
+            color: var(--neutral-600);
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.5rem;
+            }
+
+            .header p {
+                font-size: 0.875rem;
+            }
+
+            .container {
+                padding: 1.5rem 1rem;
+            }
+
+            .card-body {
+                padding: 1.25rem;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .measurement-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .sample-buttons {
+                grid-template-columns: 1fr;
+            }
+
+            .btn-group {
+                flex-direction: column;
+            }
+
+            .btn {
+                min-width: 100%;
+            }
+
+            .model-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .consensus {
+                font-size: 1.25rem;
+                padding: 1.5rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header {
+                padding: 1.5rem 1rem;
+            }
+
+            .header h1 {
+                font-size: 1.25rem;
+            }
+
+            .card-header {
+                padding: 1rem;
+            }
+
+            .accordion-body {
+                padding: 1rem;
+            }
+
+            .measurement-grid {
+                gap: 0.75rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <h1>🩺 Breast Cancer AI Diagnostic Assistant</h1>
+            <p>Multi-Model Machine Learning Analysis System</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="alert">
+            <strong>⚠️ Medical Professional Use Only</strong>
+            <p>This AI system assists medical diagnosis but does not replace professional medical judgment.</p>
+        </div>
+
+        <!-- Patient Information -->
+        <div class="card">
+            <div class="card-header">
+                <h2>📋 Patient Information</h2>
+            </div>
+            <div class="card-body">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Patient ID</label>
+                        <input type="text" id="patientId" placeholder="Enter patient ID">
+                    </div>
+                    <div class="form-group">
+                        <label>Date</label>
+                        <input type="date" id="testDate">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tumor Measurements -->
+        <div class="card">
+            <div class="card-header">
+                <h2>📊 Tumor Measurements</h2>
+            </div>
+            <div class="card-body">
+                <div class="sample-buttons">
+                    <button class="btn btn-danger" onclick="loadSampleData('malignant')">
+                        🔴 Load Malignant Case
+                    </button>
+                    <button class="btn btn-success" onclick="loadSampleData('benign')">
+                        🟢 Load Benign Case
+                    </button>
+                </div>
+
+                <!-- Mean Features Accordion -->
+                <div class="accordion">
+                    <div class="accordion-header" onclick="toggleAccordion('mean')">
+                        <h3>Mean Features (10 measurements)</h3>
+                        <span class="accordion-icon" id="icon-mean">▼</span>
+                    </div>
+                    <div class="accordion-content" id="content-mean">
+                        <div class="accordion-body">
+                            <div class="measurement-grid">
+                                <div class="form-group">
+                                    <label>Radius Mean (mm)</label>
+                                    <input type="number" step="0.01" id="radius_mean" placeholder="17.99">
+                                </div>
+                                <div class="form-group">
+                                    <label>Texture Mean</label>
+                                    <input type="number" step="0.01" id="texture_mean" placeholder="10.38">
+                                </div>
+                                <div class="form-group">
+                                    <label>Perimeter Mean (mm)</label>
+                                    <input type="number" step="0.01" id="perimeter_mean" placeholder="122.8">
+                                </div>
+                                <div class="form-group">
+                                    <label>Area Mean (mm²)</label>
+                                    <input type="number" step="0.01" id="area_mean" placeholder="1001">
+                                </div>
+                                <div class="form-group">
+                                    <label>Smoothness Mean</label>
+                                    <input type="number" step="0.00001" id="smoothness_mean" placeholder="0.1184">
+                                </div>
+                                <div class="form-group">
+                                    <label>Compactness Mean</label>
+                                    <input type="number" step="0.0001" id="compactness_mean" placeholder="0.2776">
+                                </div>
+                                <div class="form-group">
+                                    <label>Concavity Mean</label>
+                                    <input type="number" step="0.0001" id="concavity_mean" placeholder="0.3001">
+                                </div>
+                                <div class="form-group">
+                                    <label>Concave Points Mean</label>
+                                    <input type="number" step="0.0001" id="concave_points_mean" placeholder="0.1471">
+                                </div>
+                                <div class="form-group">
+                                    <label>Symmetry Mean</label>
+                                    <input type="number" step="0.0001" id="symmetry_mean" placeholder="0.2419">
+                                </div>
+                                <div class="form-group">
+                                    <label>Fractal Dimension Mean</label>
+                                    <input type="number" step="0.00001" id="fractal_dimension_mean" placeholder="0.07871">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SE Features Accordion -->
+                <div class="accordion">
+                    <div class="accordion-header" onclick="toggleAccordion('se')">
+                        <h3>Standard Error Features (10 measurements)</h3>
+                        <span class="accordion-icon" id="icon-se">▼</span>
+                    </div>
+                    <div class="accordion-content" id="content-se">
+                        <div class="accordion-body">
+                            <div class="measurement-grid">
+                                <div class="form-group">
+                                    <label>Radius SE</label>
+                                    <input type="number" step="0.001" id="radius_se" placeholder="1.095">
+                                </div>
+                                <div class="form-group">
+                                    <label>Texture SE</label>
+                                    <input type="number" step="0.0001" id="texture_se" placeholder="0.9053">
+                                </div>
+                                <div class="form-group">
+                                    <label>Perimeter SE</label>
+                                    <input type="number" step="0.001" id="perimeter_se" placeholder="8.589">
+                                </div>
+                                <div class="form-group">
+                                    <label>Area SE</label>
+                                    <input type="number" step="0.1" id="area_se" placeholder="153.4">
+                                </div>
+                                <div class="form-group">
+                                    <label>Smoothness SE</label>
+                                    <input type="number" step="0.000001" id="smoothness_se" placeholder="0.006399">
+                                </div>
+                                <div class="form-group">
+                                    <label>Compactness SE</label>
+                                    <input type="number" step="0.00001" id="compactness_se" placeholder="0.04904">
+                                </div>
+                                <div class="form-group">
+                                    <label>Concavity SE</label>
+                                    <input type="number" step="0.00001" id="concavity_se" placeholder="0.05373">
+                                </div>
+                                <div class="form-group">
+                                    <label>Concave Points SE</label>
+                                    <input type="number" step="0.00001" id="concave_points_se" placeholder="0.01587">
+                                </div>
+                                <div class="form-group">
+                                    <label>Symmetry SE</label>
+                                    <input type="number" step="0.00001" id="symmetry_se" placeholder="0.03003">
+                                </div>
+                                <div class="form-group">
+                                    <label>Fractal Dimension SE</label>
+                                    <input type="number" step="0.000001" id="fractal_dimension_se" placeholder="0.006193">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Worst Features Accordion -->
+                <div class="accordion">
+                    <div class="accordion-header" onclick="toggleAccordion('worst')">
+                        <h3>Worst Case Features (10 measurements)</h3>
+                        <span class="accordion-icon" id="icon-worst">▼</span>
+                    </div>
+                    <div class="accordion-content" id="content-worst">
+                        <div class="accordion-body">
+                            <div class="measurement-grid">
+                                <div class="form-group">
+                                    <label>Radius Worst (mm)</label>
+                                    <input type="number" step="0.01" id="radius_worst" placeholder="25.38">
+                                </div>
+                                <div class="form-group">
+                                    <label>Texture Worst</label>
+                                    <input type="number" step="0.01" id="texture_worst" placeholder="17.33">
+                                </div>
+                                <div class="form-group">
+                                    <label>Perimeter Worst (mm)</label>
+                                    <input type="number" step="0.1" id="perimeter_worst" placeholder="184.6">
+                                </div>
+                                <div class="form-group">
+                                    <label>Area Worst (mm²)</label>
+                                    <input type="number" step="1" id="area_worst" placeholder="2019">
+                                </div>
+                                <div class="form-group">
+                                    <label>Smoothness Worst</label>
+                                    <input type="number" step="0.0001" id="smoothness_worst" placeholder="0.1622">
+                                </div>
+                                <div class="form-group">
+                                    <label>Compactness Worst</label>
+                                    <input type="number" step="0.0001" id="compactness_worst" placeholder="0.6656">
+                                </div>
+                                <div class="form-group">
+                                    <label>Concavity Worst</label>
+                                    <input type="number" step="0.0001" id="concavity_worst" placeholder="0.7119">
+                                </div>
+                                <div class="form-group">
+                                    <label>Concave Points Worst</label>
+                                    <input type="number" step="0.0001" id="concave_points_worst" placeholder="0.2654">
+                                </div>
+                                <div class="form-group">
+                                    <label>Symmetry Worst</label>
+                                    <input type="number" step="0.0001" id="symmetry_worst" placeholder="0.4601">
+                                </div>
+                                <div class="form-group">
+                                    <label>Fractal Dimension Worst</label>
+                                    <input type="number" step="0.0001" id="fractal_dimension_worst" placeholder="0.1189">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analysis Options -->
+        <div class="card">
+            <div class="card-header">
+                <h2>🤖 Analysis Options</h2>
+            </div>
+            <div class="card-body">
+                <div class="checkbox-container" onclick="toggleCheckbox()">
+                    <input type="checkbox" id="compareAll" checked onchange="toggleModelSelect()">
+                    <label for="compareAll">Compare All 6 Models (Recommended)</label>
+                </div>
+                
+                <div id="singleModelSelect" style="display: none;">
+                    <div class="form-group">
+                        <label>Select Single Model</label>
+                        <select id="modelSelect">
+                            <option value="RandomForest">Random Forest</option>
+                            <option value="XGBoost">XGBoost</option>
+                            <option value="RLT">RLT (Reinforcement Learning Trees)</option>
+                            <option value="ExtraTrees">Extra Trees</option>
+                            <option value="GradientBoosting">Gradient Boosting</option>
+                            <option value="DecisionTree">Decision Tree</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="btn-group">
+            <button class="btn btn-primary" onclick="analyzeData()">
+                🔍 Analyze
+            </button>
+            <button class="btn btn-secondary" onclick="clearForm()">
+                ↻ Clear All
+            </button>
+        </div>
+
+        <!-- Loading State -->
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Analyzing with AI models...</p>
+        </div>
+
+        <!-- Results Section -->
+        <div class="results" id="results">
+            <div class="card">
+                <div class="card-header">
+                    <h2>📊 Analysis Results</h2>
+                </div>
+                <div class="card-body">
+                    <div id="resultsContent"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        // Set today's date
+        document.getElementById('testDate').valueAsDate = new Date();
+
+        // Store last analysis data for PDF export
+        let lastAnalysisData = null;
+
+        // Sample data for 2 cases - REAL DATA FROM WISCONSIN DATASET
+        const sampleCases = {
+            malignant: {
+                // Case from actual malignant tumor (worst case scenario)
+                radius_mean: 17.99, texture_mean: 10.38, perimeter_mean: 122.8, area_mean: 1001,
+                smoothness_mean: 0.1184, compactness_mean: 0.2776, concavity_mean: 0.3001,
+                concave_points_mean: 0.1471, symmetry_mean: 0.2419, fractal_dimension_mean: 0.07871,
+                radius_se: 1.095, texture_se: 0.9053, perimeter_se: 8.589, area_se: 153.4,
+                smoothness_se: 0.006399, compactness_se: 0.04904, concavity_se: 0.05373,
+                concave_points_se: 0.01587, symmetry_se: 0.03003, fractal_dimension_se: 0.006193,
+                radius_worst: 25.38, texture_worst: 17.33, perimeter_worst: 184.6, area_worst: 2019,
+                smoothness_worst: 0.1622, compactness_worst: 0.6656, concavity_worst: 0.7119,
+                concave_points_worst: 0.2654, symmetry_worst: 0.4601, fractal_dimension_worst: 0.1189
+            },
+            benign: {
+    radius_mean: 13.54,
+    texture_mean: 14.36,
+    perimeter_mean: 87.46,
+    area_mean: 566.3,
+    smoothness_mean: 0.09779,
+    compactness_mean: 0.08129,
+    concavity_mean: 0.06664,
+    concave_points_mean: 0.04781,
+    symmetry_mean: 0.1885,
+    fractal_dimension_mean: 0.05766,
+    radius_se: 0.2699,
+    texture_se: 0.7886,
+    perimeter_se: 2.058,
+    area_se: 23.56,
+    smoothness_se: 0.008462,
+    compactness_se: 0.0146,
+    concavity_se: 0.02387,
+    concave_points_se: 0.01315,
+    symmetry_se: 0.0198,
+    fractal_dimension_se: 0.0023,
+    radius_worst: 15.11,
+    texture_worst: 19.26,
+    perimeter_worst: 99.7,
+    area_worst: 711.2,
+    smoothness_worst: 0.144,
+    compactness_worst: 0.1773,
+    concavity_worst: 0.239,
+    concave_points_worst: 0.1288,
+    symmetry_worst: 0.2977,
+    fractal_dimension_worst: 0.07259,
+            }
+        };
+
+        function toggleAccordion(section) {
+            const content = document.getElementById('content-' + section);
+            const icon = document.getElementById('icon-' + section);
+            content.classList.toggle('open');
+            icon.classList.toggle('open');
+        }
+
+        function toggleCheckbox() {
+            const checkbox = document.getElementById('compareAll');
+            checkbox.checked = !checkbox.checked;
+            toggleModelSelect();
+        }
+
+        function toggleModelSelect() {
+            const compareAll = document.getElementById('compareAll').checked;
+            document.getElementById('singleModelSelect').style.display = compareAll ? 'none' : 'block';
+        }
+
+        function loadSampleData(caseType) {
+            const sampleData = sampleCases[caseType];
+            
+            for (let key in sampleData) {
+                const input = document.getElementById(key);
+                if (input) {
+                    input.value = sampleData[key];
+                }
+            }
+            
+            const messages = {
+                malignant: '🔴 Sample malignant case loaded! (Expected: MALIGNANT)',
+                benign: '🟢 Sample benign case loaded! (Expected: BENIGN)'
+            };
+            
+            alert(messages[caseType]);
+        }
+
+        function clearForm() {
+            document.querySelectorAll('input[type="number"]').forEach(input => input.value = '');
+            document.getElementById('patientId').value = '';
+            document.getElementById('results').classList.remove('show');
+            lastAnalysisData = null;
+        }
+
+        function collectFormData() {
+            const features = [
+                'radius_mean', 'texture_mean', 'perimeter_mean', 'area_mean', 'smoothness_mean',
+                'compactness_mean', 'concavity_mean', 'concave_points_mean', 'symmetry_mean', 'fractal_dimension_mean',
+                'radius_se', 'texture_se', 'perimeter_se', 'area_se', 'smoothness_se',
+                'compactness_se', 'concavity_se', 'concave_points_se', 'symmetry_se', 'fractal_dimension_se',
+                'radius_worst', 'texture_worst', 'perimeter_worst', 'area_worst', 'smoothness_worst',
+                'compactness_worst', 'concavity_worst', 'concave_points_worst', 'symmetry_worst', 'fractal_dimension_worst'
+            ];
+
+            const data = {};
+            for (let feature of features) {
+                const value = document.getElementById(feature).value;
+                if (!value) {
+                    alert(`⚠️ Please fill in: ${feature.replace(/_/g, ' ')}`);
+                    return null;
+                }
+                data[feature] = parseFloat(value);
+            }
+            return data;
+        }
+
+        async function analyzeData() {
+            const data = collectFormData();
+            if (!data) return;
+
+            // Store data for PDF export
+            lastAnalysisData = data;
+
+            const compareAll = document.getElementById('compareAll').checked;
+            const loading = document.getElementById('loading');
+            const results = document.getElementById('results');
+
+            loading.classList.add('show');
+            results.classList.remove('show');
+
+            try {
+                let response;
+                if (compareAll) {
+                    response = await fetch('/api/compare', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(data)
+                    });
+                } else {
+                    const model = document.getElementById('modelSelect').value;
+                    response = await fetch(`/api/predict?model_name=${model}`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(data)
+                    });
+                }
+
+                if (!response.ok) {
+                    throw new Error('Analysis failed');
+                }
+
+                const result = await response.json();
+                displayResults(result, compareAll);
+
+            } catch (error) {
+                alert('❌ Error: ' + error.message);
+            } finally {
+                loading.classList.remove('show');
+            }
+        }
+
+        function displayResults(result, compareAll) {
+            const resultsDiv = document.getElementById('resultsContent');
+            
+            if (compareAll) {
+                const consensus = result.consensus;
+                const comparison = result.comparison;
+                
+                let html = `
+                    <div class="consensus ${consensus.toLowerCase()}">
+                        🎯 CONSENSUS: ${consensus.toUpperCase()}
+                        <small>${Object.values(comparison).filter(m => m.diagnosis === consensus).length}/6 models agree</small>
+                    </div>
+                    <div class="model-grid">
+                `;
+
+                for (let [modelName, modelResult] of Object.entries(comparison)) {
+                    html += `
+                        <div class="model-card">
+                            <div class="model-name">${modelName}</div>
+                            <div class="model-diagnosis ${modelResult.diagnosis.toLowerCase()}">
+                                ${modelResult.diagnosis}
+                            </div>
+                            <div class="confidence-bar">
+                                <div class="confidence-fill" style="width: ${modelResult.confidence}%">
+                                    ${modelResult.confidence.toFixed(1)}%
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                html += '</div>';
+                
+                // PDF export button
+                html += `
+                    <div style="margin-top: 2rem; text-align: center;">
+                        <button class="btn btn-success" onclick="exportPDF()" style="min-width: 250px;">
+                            📄 Export PDF Report
+                        </button>
+                    </div>
+                `;
+                
+                resultsDiv.innerHTML = html;
+            } else {
+                // Single model mode
+                const isMalignant = result.diagnosis === 'Malignant';
+                let html = `
+                    <div class="consensus ${isMalignant ? 'malignant' : 'benign'}">
+                        ${result.model_name}: ${result.diagnosis.toUpperCase()}
+                        <small>Risk Level: ${result.risk_level}</small>
+                    </div>
+                    <div class="model-grid">
+                        <div class="model-card">
+                            <div class="model-name">Confidence</div>
+                            <div class="confidence-bar">
+                                <div class="confidence-fill" style="width: ${result.confidence}%">
+                                    ${result.confidence.toFixed(1)}%
+                                </div>
+                            </div>
+                        </div>
+                        <div class="model-card">
+                            <div class="model-name">Probabilities</div>
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <strong>Benign:</strong>
+                                    <span>${result.probabilities.Benign.toFixed(1)}%</span>
+                                </div>
+                                <div class="info-item">
+                                    <strong>Malignant:</strong>
+                                    <span>${result.probabilities.Malignant.toFixed(1)}%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // PDF export button
+                html += `
+                    <div style="margin-top: 2rem; text-align: center;">
+                        <button class="btn btn-success" onclick="exportPDF()" style="min-width: 250px;">
+                            📄 Export PDF Report
+                        </button>
+                    </div>
+                `;
+                
+                resultsDiv.innerHTML = html;
+            }
+
+            document.getElementById('results').classList.add('show');
+            document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        async function exportPDF() {
+            if (!lastAnalysisData) {
+                alert('⚠️ No analysis data available. Please run an analysis first.');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/export-pdf', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(lastAnalysisData)
+                });
+
+                if (!response.ok) {
+                    throw new Error('PDF generation failed');
+                }
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `breast_cancer_report_${Date.now()}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+                alert('✅ PDF report downloaded successfully!');
+            } catch (error) {
+                alert('❌ Error generating PDF: ' + error.message);
+            }
+        }
+    </script>
+
+
+</body>
+</html>
