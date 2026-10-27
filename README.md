@@ -273,4 +273,4 @@ Dataset: W. Wolberg, O. Mangasarian, N. Street & W. Street, *Breast Cancer Wisco
 
 ## 📝 License
 
-[MIT](LICENSE) © 2026 Yassine Maazaoui
+[MIT](LICENSE). Copyright (c) 2026 Ayoub Rebhi, Mahmoud Ben Khelil, Medali Mraihi, Molka Boukhris, Semah Ayachi and Yassine Maazaoui
