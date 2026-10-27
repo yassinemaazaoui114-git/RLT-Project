@@ -1,150 +1,81 @@
 # ============================================
 # train_and_save.py
-# Train models ONCE and save them forever
+# Train the API models once and save them to trained_models/
 # ============================================
-import pandas as pd
-import numpy as np
+import json
+import time
 import joblib
-import os
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier, GradientBoostingClassifier
-from xgboost import XGBClassifier
+from config import MODELS_DIR
+from models.baselines import get_baseline_models
+from models.rlt import RLTClassifier
+from utils.data_loader import load_split
+from utils.evaluation import evaluate_model
 
-print("🚀 Starting training process...")
+# Hyperparameters of the RLT forest served by the API (chosen by 5-fold CV on the training set)
+RLT_PARAMS = dict(
+    n_estimators=100,
+    muting_rate=0.5,
+    combination_size=2,
+    embedded_n_estimators=25,
+    min_samples_leaf=3,
+    min_samples_split=10,
+    random_state=42,
+    n_jobs=-1,
+)
 
-# ============================================
-# 1. LOAD DATA
-# ============================================
-print("\n📂 Loading data...")
-url = "https://archive.ics.uci.edu/ml/machine-learning-databases/breast-cancer-wisconsin/wdbc.data"
+# Neural RLT: our own addition (not in the paper) -- bagged neural networks on random feature subsets
+NEURAL_RLT_PARAMS = dict(
+    n_estimators=10,
+    max_features="sqrt",
+    hidden_layers=(64, 32, 16),
+    dropout_rate=0.3,
+    learning_rate=0.001,
+    epochs=50,
+    batch_size=32,
+    bootstrap=True,
+    random_state=42,
+)
 
-column_names = [
-    'id', 'diagnosis',
-    'radius_mean', 'texture_mean', 'perimeter_mean', 'area_mean', 'smoothness_mean',
-    'compactness_mean', 'concavity_mean', 'concave_points_mean', 'symmetry_mean', 'fractal_dimension_mean',
-    'radius_se', 'texture_se', 'perimeter_se', 'area_se', 'smoothness_se',
-    'compactness_se', 'concavity_se', 'concave_points_se', 'symmetry_se', 'fractal_dimension_se',
-    'radius_worst', 'texture_worst', 'perimeter_worst', 'area_worst', 'smoothness_worst',
-    'compactness_worst', 'concavity_worst', 'concave_points_worst', 'symmetry_worst', 'fractal_dimension_worst'
-]
 
-df = pd.read_csv(url, header=None, names=column_names)
+def main():
+    from models.neural_rlt import NeuralRLTForest  # imports TensorFlow, so only when training
 
-# ============================================
-# 2. PREPROCESSING
-# ============================================
-print("🔧 Preprocessing data...")
+    print("🚀 Starting training process...")
 
-# Encode target
-df['diagnosis'] = df['diagnosis'].map({'M': 1, 'B': 0})
+    # 1. Data: stratified 80/20 split, standardised features, 1 = Malignant
+    X_train, X_test, y_train, y_test, scaler = load_split()
+    print(f"✅ Data ready: {len(X_train)} training samples, {len(X_test)} test samples")
 
-# Features and target
-X = df.drop(['id', 'diagnosis'], axis=1)
-y = df['diagnosis']
+    # 2. Train all models (5 baselines + RLT + our Neural RLT)
+    models = get_baseline_models()
+    models["RLT"] = RLTClassifier(**RLT_PARAMS)
+    models["NeuralRLT"] = NeuralRLTForest(**NEURAL_RLT_PARAMS)
 
-# Train-test split
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+    metrics = {}
+    for name, model in models.items():
+        start = time.time()
+        model.fit(X_train.values, y_train.values)
+        train_time = time.time() - start
+        y_pred = model.predict(X_test.values)
+        y_proba = model.predict_proba(X_test.values)[:, 1]
+        metrics[name] = evaluate_model(name, y_test, y_pred, y_proba, verbose=False)
+        metrics[name]["Train time (s)"] = round(train_time, 2)
+        print(f"  {name:<17} accuracy={metrics[name]['Accuracy']:.4f}  "
+              f"ROC-AUC={metrics[name]['ROC-AUC']:.4f}  ({train_time:.1f}s)")
 
-# Scale features
-scaler = StandardScaler()
-X_train_scaled = scaler.fit_transform(X_train)
-X_test_scaled = scaler.transform(X_test)
+    # 3. Save models, scaler, feature names and test metrics
+    MODELS_DIR.mkdir(exist_ok=True)
+    joblib.dump(scaler, MODELS_DIR / "scaler.joblib")
+    for name, model in models.items():
+        joblib.dump(model, MODELS_DIR / f"{name.lower()}.joblib")
+    joblib.dump({"feature_names": X_train.columns.tolist(), "n_features": X_train.shape[1]},
+                MODELS_DIR / "feature_info.joblib")
+    with open(MODELS_DIR / "metrics.json", "w", encoding="utf-8") as f:
+        json.dump({"split": "stratified, test_size=0.2, random_state=42", "n_test": len(y_test),
+                   "rlt_params": RLT_PARAMS, "neural_rlt_params": NEURAL_RLT_PARAMS, "metrics": metrics}, f, indent=2)
 
-print(f"✅ Data ready: {X_train.shape[0]} training samples, {X_test.shape[0]} test samples")
+    print(f"\n💾 Saved {len(models)} models, scaler, feature info and metrics.json to {MODELS_DIR}")
 
-# ============================================
-# 3. TRAIN ALL MODELS (Including RLT!)
-# ============================================
-print("\n🤖 Training models (this will take a few minutes)...")
 
-models = {
-    "DecisionTree": DecisionTreeClassifier(random_state=42, max_depth=10),
-    "RandomForest": RandomForestClassifier(n_estimators=100, random_state=42, n_jobs=-1),
-    "ExtraTrees": ExtraTreesClassifier(n_estimators=100, random_state=42, n_jobs=-1),
-    "GradientBoosting": GradientBoostingClassifier(n_estimators=100, random_state=42),
-    "XGBoost": XGBClassifier(n_estimators=100, random_state=42, eval_metric='logloss', n_jobs=-1),
-}
-
-trained_models = {}
-
-for name, model in models.items():
-    print(f"  Training {name}...", end=" ")
-    model.fit(X_train_scaled, y_train)
-    score = model.score(X_test_scaled, y_test)
-    trained_models[name] = model
-    print(f"✅ Accuracy: {score:.4f}")
-
-# ============================================
-# 3B. TRAIN RLT MODEL (Simplified Version)
-# ============================================
-print("  Training RLT...", end=" ")
-
-try:
-    # Import the RLT implementation from your notebook
-    # For now, we'll use a placeholder that stores the necessary info
-    # You'll need to extract the full RLT code from your notebook
-    
-    # Convert to DataFrame for RLT compatibility
-    X_train_df = pd.DataFrame(X_train_scaled, columns=X.columns)
-    X_test_df = pd.DataFrame(X_test_scaled, columns=X.columns)
-    
-    # Placeholder: Use Random Forest as a stand-in for RLT
-    # (Replace this with your actual RLT training code from notebook)
-    rlt_model = RandomForestClassifier(
-        n_estimators=50, 
-        max_depth=15,
-        min_samples_split=5,
-        random_state=42, 
-        n_jobs=-1
-    )
-    rlt_model.fit(X_train_scaled, y_train)
-    rlt_score = rlt_model.score(X_test_scaled, y_test)
-    
-    trained_models["RLT"] = rlt_model
-    print(f"✅ Accuracy: {rlt_score:.4f}")
-    print("  ⚠️  Note: Using simplified RLT implementation")
-    
-except Exception as e:
-    print(f"⚠️  Skipped (error: {e})")
-    print("  💡 To add full RLT, extract code from your notebook")
-
-# ============================================
-# 4. SAVE EVERYTHING
-# ============================================
-print("\n💾 Saving models...")
-
-os.makedirs("models", exist_ok=True)
-
-# Save scaler
-joblib.dump(scaler, "models/scaler.joblib")
-print("✅ Saved scaler")
-
-# Save each model
-for name, model in trained_models.items():
-    filename = name.lower().replace(" ", "_")
-    joblib.dump(model, f"models/{filename}.joblib")
-    print(f"✅ Saved {filename}")
-
-# ============================================
-# 5. SAVE FEATURE NAMES (for API validation)
-# ============================================
-feature_info = {
-    'feature_names': X.columns.tolist(),
-    'n_features': len(X.columns)
-}
-joblib.dump(feature_info, "models/feature_info.joblib")
-print("✅ Saved feature names")
-
-print("\n" + "="*50)
-print("🎉 SUCCESS! All models saved!")
-print("="*50)
-print("\n📂 Saved files:")
-print("  - models/scaler.joblib")
-print("  - models/feature_info.joblib")
-for name in trained_models.keys():
-    print(f"  - models/{name.lower().replace(' ', '_')}.joblib")
-
-print("\n✨ You can now use these models in FastAPI WITHOUT retraining!")
-print("💡 To retrain in the future, just run: python train_and_save.py")
+if __name__ == "__main__":
+    main()

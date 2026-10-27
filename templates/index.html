@@ -827,7 +827,7 @@
             <div class="card-body">
                 <div class="checkbox-container" onclick="toggleCheckbox()">
                     <input type="checkbox" id="compareAll" checked onchange="toggleModelSelect()">
-                    <label for="compareAll">Compare All 6 Models (Recommended)</label>
+                    <label for="compareAll">Compare All 7 Models (Recommended)</label>
                 </div>
                 
                 <div id="singleModelSelect" style="display: none;">
@@ -837,6 +837,7 @@
                             <option value="RandomForest">Random Forest</option>
                             <option value="XGBoost">XGBoost</option>
                             <option value="RLT">RLT (Reinforcement Learning Trees)</option>
+                            <option value="NeuralRLT">Neural RLT (our addition)</option>
                             <option value="ExtraTrees">Extra Trees</option>
                             <option value="GradientBoosting">Gradient Boosting</option>
                             <option value="DecisionTree">Decision Tree</option>
@@ -1049,7 +1050,7 @@
                 let html = `
                     <div class="consensus ${consensus.toLowerCase()}">
                         🎯 CONSENSUS: ${consensus.toUpperCase()}
-                        <small>${Object.values(comparison).filter(m => m.diagnosis === consensus).length}/6 models agree</small>
+                        <small>${Object.values(comparison).filter(m => m.diagnosis === consensus).length}/${Object.keys(comparison).length} models agree</small>
                     </div>
                     <div class="model-grid">
                 `;

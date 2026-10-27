@@ -1,6 +1,10 @@
 """
-Neural Reinforcement Learning Trees (Neural RLT).
-Bonus implementation using deep neural networks instead of decision trees.
+Neural RLT -- our own addition to this project, NOT part of the original RLT paper
+(Zhu, Zeng & Kosorok, 2015).
+
+A bagged ensemble of small neural networks: each member is trained on a bootstrap
+sample and on a random subset of the features (sqrt(p) by default), and the
+ensemble averages their predicted probabilities.
 """
 import numpy as np
 import tensorflow as tf
@@ -75,8 +79,7 @@ class NeuralRLTTree(BaseEstimator, ClassifierMixin):
         y = np.asarray(y)
         
         if self.random_state is not None:
-            np.random.seed(self.random_state)
-            tf.random.set_seed(self.random_state)
+            keras.utils.set_random_seed(self.random_state)  # Python, NumPy and TensorFlow seeds
         
         self.classes_ = np.unique(y)
         self.n_features_in_ = X.shape[1]
@@ -137,15 +140,13 @@ class NeuralRLTTree(BaseEstimator, ClassifierMixin):
     
     def predict_proba(self, X):
         """Predict class probabilities."""
-        X = np.asarray(X)
-        X_selected = X[:, self.feature_indices_]
-        
+        X_selected = np.asarray(X, dtype=np.float32)[:, self.feature_indices_]
+        # Direct call instead of model.predict(): much faster for the API's single-row requests
+        proba = self.model(X_selected, training=False).numpy().astype(float)
+
         if len(self.classes_) == 2:
-            proba_class1 = self.model.predict(X_selected, verbose=0)
-            proba_class0 = 1 - proba_class1
-            return np.hstack([proba_class0, proba_class1])
-        else:
-            return self.model.predict(X_selected, verbose=0)
+            return np.hstack([1 - proba, proba])
+        return proba
     
     def predict(self, X):
         """Predict class labels."""
@@ -182,6 +183,9 @@ class NeuralRLTForest(BaseEstimator, ClassifierMixin):
         y = np.asarray(y)
         
         self.classes_ = np.unique(y)
+        self.trees_ = []
+        if self.random_state is not None:
+            tf.config.experimental.enable_op_determinism()  # reproducible results run to run
         rng = np.random.RandomState(self.random_state)
         
         print(f"Training Neural RLT Forest with {self.n_estimators} trees...")
@@ -225,29 +229,3 @@ class NeuralRLTForest(BaseEstimator, ClassifierMixin):
         """Predict class labels."""
         proba = self.predict_proba(X)
         return self.classes_[np.argmax(proba, axis=1)]
-
-
-def train_neural_rlt(X_train, y_train):
-    """Train Neural RLT Forest."""
-    from config import RANDOM_STATE
-    
-    print("🔄 Training Neural RLT Forest...")
-    
-    model = NeuralRLTForest(
-        n_estimators=10,
-        max_features="sqrt",
-        hidden_layers=(64, 32, 16),
-        dropout_rate=0.3,
-        learning_rate=0.001,
-        epochs=50,
-        batch_size=32,
-        bootstrap=True,
-        random_state=RANDOM_STATE,
-    )
-    
-    X_train_tf = np.asarray(X_train, dtype=np.float32)
-    model.fit(X_train_tf, y_train.to_numpy())
-    
-    print(f"✓ Trained {len(model.trees_)} neural trees")
-    
-    return model

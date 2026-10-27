@@ -3,13 +3,17 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# Virtual environment
+# Virtual environments
 venv/
+.venv/
 env/
 ENV/
 
 # Jupyter
-.ipynb_checkpoints
+.ipynb_checkpoints/
+
+# Generated PDF reports (docs/sample_report.pdf is the kept example)
+reports/
 
 # IDE
 .vscode/

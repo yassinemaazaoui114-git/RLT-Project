@@ -1,8 +1,11 @@
 """Configuration file for the breast cancer classification project."""
 
-# Data paths
+from pathlib import Path
+
+# Paths (relative to the project root, so scripts and the API work from any directory)
+BASE_DIR = Path(__file__).resolve().parent
 DATA_PATH = "data/wdbc.data"
-MODELS_DIR = "trained_models"
+MODELS_DIR = BASE_DIR / "trained_models"
 
 # Feature names
 FEATURE_COLS = [

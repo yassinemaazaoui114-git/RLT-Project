@@ -2,8 +2,8 @@
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
 
 
-def evaluate_model(name, y_true, y_pred, y_proba):
-    """Evaluate model performance."""
+def evaluate_model(name, y_true, y_pred, y_proba, verbose=True):
+    """Test-set metrics of one model (positive class = 1 = Malignant)."""
     metrics = {
         "Model": name,
         "Accuracy": accuracy_score(y_true, y_pred),
@@ -12,11 +12,12 @@ def evaluate_model(name, y_true, y_pred, y_proba):
         "F1-Score": f1_score(y_true, y_pred),
         "ROC-AUC": roc_auc_score(y_true, y_proba)
     }
-    
-    print(f"\n{'='*60}")
-    print(f"  {name} Performance")
-    print(f"{'='*60}")
-    for key, value in list(metrics.items())[1:]:
-        print(f"  {key:12s}: {value:.4f}")
-    
+
+    if verbose:
+        print(f"\n{'='*60}")
+        print(f"  {name} Performance")
+        print(f"{'='*60}")
+        for key, value in list(metrics.items())[1:]:
+            print(f"  {key:12s}: {value:.4f}")
+
     return metrics

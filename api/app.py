@@ -3,14 +3,13 @@ FastAPI main application.
 """
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
-from pathlib import Path
 from api.routes import prediction
+from config import BASE_DIR
 
 app = FastAPI(
     title="🩺 Breast Cancer Prediction API",
-    description="ML-powered breast cancer diagnosis with 6 ensemble models",
+    description="Breast cancer diagnosis with Reinforcement Learning Trees (RLT), our Neural RLT and 5 baseline tree models",
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
@@ -32,12 +31,12 @@ app.include_router(prediction.router, prefix="/api", tags=["Prediction"])
 @app.get("/", response_class=HTMLResponse)
 async def root():
     """Serve the main HTML interface."""
-    html_path = Path("templates/index.html")
+    html_path = BASE_DIR / "templates" / "index.html"
     if html_path.exists():
-        return html_path.read_text()
+        return html_path.read_text(encoding="utf-8")
     return "<h1>UI not found. Please create templates/index.html</h1>"
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("api.app:app", host="127.0.0.1", port=8000, reload=True)
 
