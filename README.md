@@ -2,7 +2,9 @@
 
 # 🌳 Reinforcement Learning Trees for Breast Cancer Classification
 
-**A from-scratch reproduction of _Reinforcement Learning Trees_ (Zhu, Zeng & Kosorok, JASA 2015),<br/>benchmarked against 5 tree ensembles and our own Neural RLT, and served through a FastAPI web app.**
+**A from-scratch reproduction of _Reinforcement Learning Trees_ (Zhu, Zeng & Kosorok, JASA 2015),<br/>benchmarked against 5 tree ensembles and our own Neural RLT, and served through a FastAPI REST API.**
+
+🎓 **Class project (paper reproduction)** by Ayoub Rebhi, Mahmoud Ben Khelil, Medali Mraihi, Molka Boukhris, Semah Ayachi and Yassine Maazaoui
 
 [![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![scikit-learn](https://img.shields.io/badge/scikit--learn-1.9-F7931E?logo=scikitlearn&logoColor=white)](https://scikit-learn.org/)
@@ -16,13 +18,9 @@
 [Results](#-results) •
 [Neural RLT](#-our-addition-neural-rlt-not-part-of-the-paper) •
 [Notebooks](#-notebooks) •
-[Web app & API](#-web-app--api) •
+[API](#-api) •
 [Quick start](#-quick-start) •
 [Citation](#-citation)
-
-<img src="docs/figures/app_screenshot.png" alt="Web app screenshot" width="85%"/>
-
-▶️ **[Watch the 1-minute demo video](docs/demo.mp4)**
 
 </div>
 
@@ -44,7 +42,7 @@ RLT borrows the reinforcement-learning idea of choosing the action with the best
 
 The paper proves consistency and shows that the convergence rate depends on the number of **strong** variables instead of the total dimension *p*. Empirically, RLT's largest gains are in high-dimensional, sparse settings.
 
-## 🔬 What I reproduced
+## 🔬 What we reproduced
 
 | | |
 |---|---|
@@ -52,7 +50,7 @@ The paper proves consistency and shows that the convergence rate depends on the 
 | **Step-by-step RLT** ([notebook 01](notebook/01_rlt_breast_cancer.ipynb)) | Root node VI, muting and split computed by hand, then a single-tree `RLTClassifier`, an 8-model comparison and hyperparameter search. |
 | **Other datasets of the paper** ([notebooks 02, 03](#-notebooks)) | The same method applied to the **Sonar** and **Ozone** UCI datasets. |
 | **Benchmark** ([`main.py`](main.py)) | RLT vs Decision Tree, Random Forest, Extra Trees, Gradient Boosting, XGBoost and our **Neural RLT** ([our addition](#-our-addition-neural-rlt-not-part-of-the-paper), not from the paper), all on the **same stratified split**. |
-| **Deployment** ([`api/`](api/)) | FastAPI service + HTML UI serving the RLT forest, Neural RLT and the 5 baselines, with model comparison and PDF report export. |
+| **Deployment** ([`api/`](api/)) | FastAPI service serving the RLT forest, Neural RLT and the 5 baselines, with model comparison and PDF report export. |
 
 <details>
 <summary><b>Implementation details and hyperparameters</b></summary>
@@ -71,7 +69,7 @@ The paper proves consistency and shows that the convergence rate depends on the 
 * **Variable importance**: increase of the out-of-bag Brier score when a variable is permuted, averaged over the embedded trees. If no variable has a positive permutation VI (tiny nodes), the impurity importance of the same embedded model is used.
 * **Cut point**: exhaustive search of the Gini-optimal threshold on the chosen variable (or on the linear combination *z*).
 * **Muting floor**: muting never reduces the active set below `min_features = 3` variables.
-* **Tuning**: `muting_rate ∈ {0, 0.5, 0.8}` × `combination_size ∈ {1, 2, 3}` were compared by **5-fold CV on the training set only**. All configurations with muting ≤ 0.5 scored within one standard deviation of each other (CV accuracy 96.0–96.7%, std ≈ 1.5–2%). `muting=0.5, k=2` (96.5% CV accuracy, 0.991 CV ROC-AUC) is 0.2 points below the top configuration, and I kept it so that the paper's muting stays active. Aggressive muting (0.8) was consistently worse (≈ 94.7%).
+* **Tuning**: `muting_rate ∈ {0, 0.5, 0.8}` × `combination_size ∈ {1, 2, 3}` were compared by **5-fold CV on the training set only**. All configurations with muting ≤ 0.5 scored within one standard deviation of each other (CV accuracy 96.0–96.7%, std ≈ 1.5–2%). `muting=0.5, k=2` (96.5% CV accuracy, 0.991 CV ROC-AUC) is 0.2 points below the top configuration, and we kept it so that the paper's muting stays active. Aggressive muting (0.8) was consistently worse (≈ 94.7%).
 * **Speed**: the embedded model uses low-level tree prediction for the permutation loop, and trees are grown in parallel with `joblib`. 100 trees train in ≈ 10–25 s on a 16-core laptop, against ≈ 40 s **per tree** for the first version of the code.
 
 </details>
@@ -139,7 +137,7 @@ The RLT forest is still a clear improvement over the single RLT tree from the no
 | **Member network** | Dense 64 → 32 → 16 (ReLU, He init), batch normalization and dropout 0.3 after each layer, sigmoid output |
 | **Training** | Adam (lr = 0.001), binary cross-entropy, up to 50 epochs, batch size 32 (Keras holds out 10% of each bootstrap sample as a validation split), early stopping and learning-rate reduction on the training loss |
 | **Reproducibility** | Fixed seeds + TensorFlow op determinism: re-training gives **bit-identical** probabilities |
-| **Where it is used** | Benchmark (`main.py`), the saved API models (`train_and_save.py`), the web app and every API endpoint (`model_name=NeuralRLT`) |
+| **Where it is used** | Benchmark (`main.py`), the saved API models (`train_and_save.py`) and every API endpoint (`model_name=NeuralRLT`) |
 
 **Results:** Neural RLT ties for the best accuracy (97.37%, 111/114) and reaches a ROC-AUC of 1.0000 on this test set. That is the same accuracy as Random Forest and Extra Trees (same 3 missed malignant cases) and one patient more than RLT.
 
@@ -156,13 +154,14 @@ The RLT forest is still a clear improvement over the single RLT tree from the no
 > [!NOTE]
 > These notebooks are earlier, simplified prototypes written before the forest in `models/rlt.py`: they use impurity-based VI, simpler split rules and no linear combinations. On **Ozone**, only 4.6% of the days are ozone days, and the notebook's 95.4% accuracy is exactly the majority-class baseline: the model predicts "no ozone" for every day (recall 0 on the positive class). An honest evaluation on this dataset needs class weighting or threshold tuning and should report ROC-AUC / F1 instead of accuracy.
 
-## 🌐 Web app & API
+## 🌐 API
 
-The FastAPI app ([`api/`](api/)) loads the 7 trained models (5 baselines, RLT and our Neural RLT) from [`trained_models/`](trained_models/) once at start-up and serves an HTML interface at `/`. In the UI you can load a sample malignant or benign case, analyse it with one model or compare all of them, and export a PDF report ([example](docs/sample_report.pdf)).
+The FastAPI app ([`api/`](api/)) loads the 7 trained models (5 baselines, RLT and our Neural RLT) from [`trained_models/`](trained_models/) once at start-up and exposes REST endpoints to predict with one model, compare all models with a majority-vote consensus, and export a PDF report ([example](docs/sample_report.pdf)).
+
+Start the server with `uvicorn api.app:app --reload` (after `pip install -r requirements.txt`); the interactive Swagger documentation is then at http://127.0.0.1:8000/docs.
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `GET` | `/` | HTML interface |
 | `GET` | `/api/health` | Service status and loaded models |
 | `GET` | `/api/models` | List of available models |
 | `POST` | `/api/predict?model_name=RLT` | Diagnosis, probabilities and risk level from one model (`DecisionTree`, `RandomForest`, `ExtraTrees`, `GradientBoosting`, `XGBoost`, `RLT`, `NeuralRLT`) |
@@ -211,7 +210,7 @@ pip install -r requirements.txt
 python train_and_save.py          # train the 7 API models -> trained_models/ (+ metrics.json)
 python main.py                    # full benchmark incl. Neural RLT -> docs/benchmark_results.csv + figures
 python main.py --no-neural        # same, without the Neural RLT
-uvicorn api.app:app --reload      # web app on http://127.0.0.1:8000
+uvicorn api.app:app --reload      # API on http://127.0.0.1:8000 (Swagger docs at /docs)
 pytest                            # 24 tests: RLT unit tests + every endpoint with every model
 ```
 
@@ -231,7 +230,7 @@ print(rlt.score(X_test, y_test), rlt.predict_proba(X_test[:3]))
 
 ```
 ├── api/
-│   ├── app.py                  # FastAPI app, serves the UI
+│   ├── app.py                  # FastAPI app
 │   ├── routes/prediction.py    # /predict, /compare, /export-pdf, /health, /models
 │   ├── schemas.py              # Pydantic input/output schemas (30 features)
 │   └── utils/pdf_generator.py  # ReportLab PDF report
@@ -245,10 +244,9 @@ print(rlt.score(X_test, y_test), rlt.predict_proba(X_test[:3]))
 │   └── visualizations.py       # Benchmark figures
 ├── notebook/                   # Research notebooks (breast cancer, sonar, ozone)
 ├── trained_models/             # Saved models, scaler, feature info, metrics.json
-├── templates/index.html        # Web UI
 ├── tests/                      # pytest: RLT unit tests + API end-to-end tests
 ├── data/wdbc.data              # Wisconsin Diagnostic Breast Cancer dataset
-├── docs/                       # Figures, benchmark results, demo video, sample PDF report
+├── docs/                       # Figures, benchmark results, sample PDF report
 ├── main.py                     # Full benchmark pipeline
 ├── train_and_save.py           # Trains and saves the API models
 └── config.py                   # Paths, feature names, split settings, tuning grids
